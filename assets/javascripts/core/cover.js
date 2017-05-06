@@ -1,87 +1,79 @@
-/*! UIkit 2.27.2 | http://www.getuikit.com | (c) 2014 YOOtheme | MIT License */
-(function(UI){
+import { Class } from '../mixin/index';
+import { Dimensions } from '../util/index';
 
-    "use strict";
+export default function (UIkit) {
 
-    UI.component('cover', {
+    UIkit.component('cover', {
 
-        defaults: {
-            automute : true
+        mixins: [Class],
+
+        props: {
+            automute: Boolean,
+            width: Number,
+            height: Number
         },
 
-        boot: function() {
+        defaults: {automute: true},
 
-            // auto init
-            UI.ready(function(context) {
+        computed: {
 
-                UI.$('[data-uk-cover]', context).each(function(){
+            el() {
+                return this.$el[0];
+            },
 
-                    var ele = UI.$(this);
+            parent() {
+                return this.$el.parent()[0];
+            }
 
-                    if(!ele.data('cover')) {
-                        var plugin = UI.cover(ele, UI.Utils.options(ele.attr('data-uk-cover')));
-                    }
-                });
-            });
         },
 
-        init: function() {
+        ready() {
 
-            this.parent = this.element.parent();
+            if (!this.$el.is('iframe')) {
+                return;
+            }
 
-            UI.$win.on('load resize orientationchange', UI.Utils.debounce(function(){
-                this.check();
-            }.bind(this), 100));
+            this.$el.css('pointerEvents', 'none');
 
-            this.on('display.uk.check', function(e) {
-                if (this.element.is(':visible')) this.check();
-            }.bind(this));
+            if (this.automute) {
 
-            this.check();
+                var src = this.$el.attr('src');
 
-            if (this.element.is('iframe') && this.options.automute) {
-
-                var src = this.element.attr('src');
-
-                this.element.attr('src', '').on('load', function(){
-                    this.contentWindow.postMessage('{ "event": "command", "func": "mute", "method":"setVolume", "value":0}', '*');
-                }).attr('src', [src, (src.indexOf('?') > -1 ? '&':'?'), 'enablejsapi=1&api=1'].join(''));
+                this.$el
+                    .attr('src', `${src}${~src.indexOf('?') ? '&' : '?'}enablejsapi=1&api=1`)
+                    .on('load', ({target}) => target.contentWindow.postMessage('{"event": "command", "func": "mute", "method":"setVolume", "value":0}', '*'));
             }
         },
 
-        check: function() {
+        update: {
 
-            this.element.css({ width  : '', height : '' });
+            write() {
 
-            this.dimension = {w: this.element.width(), h: this.element.height()};
+                if (this.el.offsetHeight === 0) {
+                    return;
+                }
 
-            if (this.element.attr('width') && !isNaN(this.element.attr('width'))) {
-                this.dimension.w = this.element.attr('width');
+                this.$el
+                    .css({width: '', height: ''})
+                    .css(Dimensions.cover(
+                        {width: this.width || this.el.clientWidth, height: this.height || this.el.clientHeight},
+                        {width: this.parent.offsetWidth, height: this.parent.offsetHeight}
+                    ));
+
+            },
+
+            events: ['load', 'resize']
+
+        },
+
+        events: {
+
+            loadedmetadata() {
+                this.$emit();
             }
 
-            if (this.element.attr('height') && !isNaN(this.element.attr('height'))) {
-                this.dimension.h = this.element.attr('height');
-            }
-
-            this.ratio = this.dimension.w / this.dimension.h;
-
-            var w = this.parent.width(), h = this.parent.height(), width, height;
-
-            // if element height < parent height (gap underneath)
-            if ((w / this.ratio) < h) {
-
-                width  = Math.ceil(h * this.ratio);
-                height = h;
-
-            // element width < parent width (gap to right)
-            } else {
-
-                width  = w;
-                height = Math.ceil(w / this.ratio);
-            }
-
-            this.element.css({ width  : width, height : height });
         }
+
     });
 
-})(UIkit2);
+}

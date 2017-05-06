@@ -1,124 +1,119 @@
-/*! UIkit 2.27.2 | http://www.getuikit.com | (c) 2014 YOOtheme | MIT License */
-(function(UI){
+import { $, Event, hasTouch, isTouch, pointerEnter, pointerLeave, query } from '../util/index';
 
-    "use strict";
+export default function (UIkit) {
 
-    var toggles = [];
+    UIkit.component('toggle', {
 
-    UI.component('toggle', {
+        mixins: [UIkit.mixin.togglable],
+
+        args: 'target',
+
+        props: {
+            href: String,
+            target: null,
+            mode: 'list',
+            media: 'media'
+        },
 
         defaults: {
-            target    : false,
-            cls       : 'uk-hidden',
-            animation : false,
-            duration  : 200
+            href: false,
+            target: false,
+            mode: 'click',
+            queued: true,
+            media: false
         },
 
-        boot: function(){
+        computed: {
 
-            // init code
-            UI.ready(function(context) {
-
-                UI.$('[data-uk-toggle]', context).each(function() {
-                    var ele = UI.$(this);
-
-                    if (!ele.data('toggle')) {
-                        var obj = UI.toggle(ele, UI.Utils.options(ele.attr('data-uk-toggle')));
-                    }
-                });
-
-                setTimeout(function(){
-
-                    toggles.forEach(function(toggle){
-                        toggle.getToggles();
-                    });
-
-                }, 0);
-            });
-        },
-
-        init: function() {
-
-            var $this = this;
-
-            this.aria = (this.options.cls.indexOf('uk-hidden') !== -1);
-
-            this.on('click', function(e) {
-
-                if ($this.element.is('a[href="#"]')) {
-                    e.preventDefault();
-                }
-
-                $this.toggle();
-            });
-
-            toggles.push(this);
-        },
-
-        toggle: function() {
-
-            this.getToggles();
-
-            if(!this.totoggle.length) return;
-
-            if (this.options.animation && UI.support.animation) {
-
-                var $this = this, animations = this.options.animation.split(',');
-
-                if (animations.length == 1) {
-                    animations[1] = animations[0];
-                }
-
-                animations[0] = animations[0].trim();
-                animations[1] = animations[1].trim();
-
-                this.totoggle.css('animation-duration', this.options.duration+'ms');
-
-                this.totoggle.each(function(){
-
-                    var ele = UI.$(this);
-
-                    if (ele.hasClass($this.options.cls)) {
-
-                        ele.toggleClass($this.options.cls);
-
-                        UI.Utils.animate(ele, animations[0]).then(function(){
-                            ele.css('animation-duration', '');
-                            UI.Utils.checkDisplay(ele);
-                        });
-
-                    } else {
-
-                        UI.Utils.animate(this, animations[1]+' uk-animation-reverse').then(function(){
-                            ele.toggleClass($this.options.cls).css('animation-duration', '');
-                            UI.Utils.checkDisplay(ele);
-                        });
-
-                    }
-
-                });
-
-            } else {
-                this.totoggle.toggleClass(this.options.cls);
-                UI.Utils.checkDisplay(this.totoggle);
+            target() {
+                return query(this.$props.target || this.href, this.$el) || this.$el;
             }
 
-            this.updateAria();
-
         },
 
-        getToggles: function() {
-            this.totoggle = this.options.target ? UI.$(this.options.target):[];
-            this.updateAria();
-        },
+        events: [
 
-        updateAria: function() {
-            if (this.aria && this.totoggle.length) {
-                this.totoggle.not('[aria-hidden]').each(function(){
-                    UI.$(this).attr('aria-hidden', UI.$(this).hasClass('uk-hidden'));
-                });
+            {
+
+                name: `${pointerEnter} ${pointerLeave}`,
+
+                filter() {
+                    return ~this.mode.indexOf('hover');
+                },
+
+                handler(e) {
+                    if (!isTouch(e)) {
+                        this.toggle(`toggle${e.type === pointerEnter ? 'show' : 'hide'}`);
+                    }
+                }
+
+            },
+
+            {
+
+                name: 'click',
+
+                filter() {
+                    return ~this.mode.indexOf('click') || hasTouch;
+                },
+
+                handler(e) {
+
+                    if (!isTouch(e) && !~this.mode.indexOf('click')) {
+                        return;
+                    }
+
+                    // TODO better isToggled handling
+                    var link = $(e.target).closest('a[href]');
+                    if ($(e.target).closest('a[href="#"], button').length
+                        || link.length && (
+                            this.cls
+                            || !this.target.is(':visible')
+                            || link.attr('href')[0] === '#' && this.target.is(link.attr('href'))
+                        )
+                    ) {
+                        e.preventDefault();
+                    }
+
+                    this.toggle();
+                }
+
             }
+        ],
+
+        update: {
+
+            write() {
+
+                if (!~this.mode.indexOf('media') || !this.media) {
+                    return;
+                }
+
+                var toggled = this.isToggled(this.target);
+                if (window.matchMedia(this.media).matches ? !toggled : toggled) {
+                    this.toggle();
+                }
+
+            },
+
+            events: ['load', 'resize']
+
+        },
+
+        methods: {
+
+            toggle(type) {
+
+                var event = Event(type || 'toggle');
+                this.target.triggerHandler(event, [this]);
+
+                if (!event.isDefaultPrevented()) {
+                    this.toggleElement(this.target);
+                }
+            }
+
         }
+
     });
 
-})(UIkit2);
+}

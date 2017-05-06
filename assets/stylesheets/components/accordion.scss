@@ -1,20 +1,10 @@
 // Name:            Accordion
-// Description:     Defines styles for the accordion
+// Description:     Component to create accordions
 //
 // Component:       `uk-accordion`
 //
 // Sub-objects:     `uk-accordion-title`
 //                  `uk-accordion-content`
-//
-// Markup:
-//
-// <!-- uk-accordion -->
-// <div class="uk-accordion" data-uk-accordion>
-//     <h3 class="uk-accordion-title"></h3>
-//     <div class="uk-accordion-content">
-//         <p></p>
-//     </div>
-// </div>
 //
 // ========================================================================
 
@@ -22,15 +12,12 @@
 // Variables
 // ========================================================================
 
-$accordion-title-margin-bottom:                  15px !default;
-$accordion-title-padding-vertical:               5px !default;
-$accordion-title-padding-horizontal:             15px !default;
-$accordion-title-font-size:                      18px !default;
-$accordion-title-line-height:                    24px !default;
-$accordion-title-background:                     #eee !default;
+$accordion-item-margin-top:                     $global-margin !default;
 
-$accordion-content-padding-horizontal:           $accordion-title-padding-horizontal !default;
-$accordion-content-padding-bottom:               $accordion-title-padding-horizontal !default;
+$accordion-title-font-size:                     $global-medium-font-size !default;
+$accordion-title-line-height:                   1.4 !default;
+
+$accordion-content-margin-top:                  $global-margin !default;
 
 
 /* ========================================================================
@@ -38,34 +25,43 @@ $accordion-content-padding-bottom:               $accordion-title-padding-horizo
  ========================================================================== */
 
 .uk-accordion {
-    @include hook-accordion();
+    padding: 0;
+    list-style: none;
+    @if(mixin-exists(hook-accordion)) {@include hook-accordion();}
 }
 
-/* Sub-object: `uk-accordion-title`
+
+/* Item
+ ========================================================================== */
+
+.uk-accordion > :nth-child(n+2) {
+    margin-top: $accordion-item-margin-top;
+    @if(mixin-exists(hook-accordion-item)) {@include hook-accordion-item();}
+}
+
+
+/* Title
  ========================================================================== */
 
 .uk-accordion-title {
-    margin-top: 0;
-    margin-bottom: $accordion-title-margin-bottom;
-    padding: $accordion-title-padding-vertical $accordion-title-padding-horizontal;
-    background: $accordion-title-background;
+    margin: 0;
     font-size: $accordion-title-font-size;
     line-height: $accordion-title-line-height;
     cursor: pointer;
-    @include hook-accordion-title();
+    @if(mixin-exists(hook-accordion-title)) {@include hook-accordion-title();}
 }
 
 
-/* Sub-object: `uk-accordion-content`
+/* Content
  ========================================================================== */
 
 .uk-accordion-content {
-    padding: 0 $accordion-content-padding-horizontal $accordion-content-padding-bottom $accordion-content-padding-horizontal;
-    @include hook-accordion-content();
+    margin-top: $accordion-content-margin-top;
+    @if(mixin-exists(hook-accordion-content)) {@include hook-accordion-content();}
 }
 
 /*
- * Micro clearfix to make panels more robust
+ * Micro clearfix
  */
 
 .uk-accordion-content:before,
@@ -86,9 +82,19 @@ $accordion-content-padding-bottom:               $accordion-title-padding-horizo
 // Hooks
 // ========================================================================
 
-@include hook-accordion-misc();
+@if(mixin-exists(hook-accordion-misc)) {@include hook-accordion-misc();}
 
 // @mixin hook-accordion(){}
+// @mixin hook-accordion-item(){}
 // @mixin hook-accordion-title(){}
 // @mixin hook-accordion-content(){}
 // @mixin hook-accordion-misc(){}
+
+
+// Inverse
+// ========================================================================
+
+
+
+// @mixin hook-inverse-accordion-item(){}
+// @mixin hook-inverse-accordion-title(){}

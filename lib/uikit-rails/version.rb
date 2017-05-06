@@ -1,3 +1,3 @@
 module Uikit
-  VERSION = "2.27.2"
+  VERSION = "v3.0.0-beta.22"
 end

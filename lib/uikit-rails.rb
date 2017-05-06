@@ -1,2 +1,2 @@
-require 'uikit-rails/engine'
-require 'uikit-rails/version'
+require 'uikit3-rails/engine'
+require 'uikit3-rails/version'

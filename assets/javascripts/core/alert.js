@@ -1,66 +1,51 @@
-/*! UIkit 2.27.2 | http://www.getuikit.com | (c) 2014 YOOtheme | MIT License */
-(function(UI) {
+import { Class, Togglable } from '../mixin/index';
 
-    "use strict";
+export default function (UIkit) {
 
-    UI.component('alert', {
+    UIkit.component('alert', {
+
+        mixins: [Class, Togglable],
+
+        args: 'animation',
+
+        props: {
+            close: String
+        },
 
         defaults: {
-            fade: true,
-            duration: 200,
-            trigger: '.uk-alert-close'
+            animation: [true],
+            close: '.uk-alert-close',
+            duration: 150,
+            hideProps: {opacity: 0}
         },
 
-        boot: function() {
+        events: [
 
-            // init code
-            UI.$html.on('click.alert.uikit', '[data-uk-alert]', function(e) {
+            {
 
-                var ele = UI.$(this);
+                name: 'click',
 
-                if (!ele.data('alert')) {
+                delegate() {
+                    return this.close;
+                },
 
-                    var alert = UI.alert(ele, UI.Utils.options(ele.attr('data-uk-alert')));
-
-                    if (UI.$(e.target).is(alert.options.trigger)) {
-                        e.preventDefault();
-                        alert.close();
-                    }
+                handler(e) {
+                    e.preventDefault();
+                    this.closeAlert();
                 }
-            });
-        },
 
-        init: function() {
-
-            var $this = this;
-
-            this.on('click', this.options.trigger, function(e) {
-                e.preventDefault();
-                $this.close();
-            });
-        },
-
-        close: function() {
-
-            var element       = this.trigger('close.uk.alert'),
-                removeElement = function () {
-                    this.trigger('closed.uk.alert').remove();
-                }.bind(this);
-
-            if (this.options.fade) {
-                element.css('overflow', 'hidden').css("max-height", element.height()).animate({
-                    height         : 0,
-                    opacity        : 0,
-                    paddingTop    : 0,
-                    paddingBottom : 0,
-                    marginTop     : 0,
-                    marginBottom  : 0
-                }, this.options.duration, removeElement);
-            } else {
-                removeElement();
             }
+
+        ],
+
+        methods: {
+
+            closeAlert() {
+                this.toggleElement(this.$el).then(() => this.$destroy(true));
+            }
+
         }
 
     });
 
-})(UIkit2);
+}

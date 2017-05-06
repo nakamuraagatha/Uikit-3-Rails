@@ -1,197 +1,178 @@
-/*! UIkit 2.27.2 | http://www.getuikit.com | (c) 2014 YOOtheme | MIT License */
-(function(UI) {
+import { Modal } from '../mixin/index';
+import { $, docElement, isTouch, query, transitionend } from '../util/index';
 
-    "use strict";
+var scroll;
 
-    var scrollpos = {x: window.scrollX, y: window.scrollY},
-        $win      = UI.$win,
-        $doc      = UI.$doc,
-        $html     = UI.$html,
-        Offcanvas = {
+export default function (UIkit) {
 
-        show: function(element, options) {
+    UIkit.component('offcanvas', {
 
-            element = UI.$(element);
+        mixins: [Modal],
 
-            if (!element.length) return;
+        args: 'mode',
 
-            options = UI.$.extend({mode: 'push'}, options);
-
-            var $body     = UI.$('body'),
-                bar       = element.find('.uk-offcanvas-bar:first'),
-                rtl       = (UI.langdirection == 'right'),
-                flip      = bar.hasClass('uk-offcanvas-bar-flip') ? -1:1,
-                dir       = flip * (rtl ? -1 : 1),
-
-                scrollbarwidth =  window.innerWidth - $body.width();
-
-            scrollpos = {x: window.pageXOffset, y: window.pageYOffset};
-
-            bar.attr('mode', options.mode);
-            element.addClass('uk-active');
-
-            $body.css({width: window.innerWidth - scrollbarwidth, height: window.innerHeight}).addClass('uk-offcanvas-page');
-
-            if (options.mode == 'push' || options.mode == 'reveal') {
-                $body.css((rtl ? 'margin-right' : 'margin-left'), (rtl ? -1 : 1) * (bar.outerWidth() * dir));
-            }
-
-            if (options.mode == 'reveal') {
-                bar.css('clip', 'rect(0, '+bar.outerWidth()+'px, 100vh, 0)');
-            }
-
-            $html.css('margin-top', scrollpos.y * -1).width(); // .width() - force redraw
-
-
-            bar.addClass('uk-offcanvas-bar-show');
-
-            this._initElement(element);
-
-            bar.trigger('show.uk.offcanvas', [element, bar]);
-
-            // Update ARIA
-            element.attr('aria-hidden', 'false');
+        props: {
+            content: String,
+            mode: String,
+            flip: Boolean,
+            overlay: Boolean
         },
 
-        hide: function(force) {
+        defaults: {
+            content: '.uk-offcanvas-content:first',
+            mode: 'slide',
+            flip: false,
+            overlay: false,
+            clsPage: 'uk-offcanvas-page',
+            clsContainer: 'uk-offcanvas-container',
+            clsPanel: 'uk-offcanvas-bar',
+            clsFlip: 'uk-offcanvas-flip',
+            clsContent: 'uk-offcanvas-content',
+            clsContentAnimation: 'uk-offcanvas-content-animation',
+            clsSidebarAnimation: 'uk-offcanvas-bar-animation',
+            clsMode: 'uk-offcanvas',
+            clsOverlay: 'uk-offcanvas-overlay',
+            selClose: '.uk-offcanvas-close'
+        },
 
-            var $body = UI.$('body'),
-                panel = UI.$('.uk-offcanvas.uk-active'),
-                rtl   = (UI.langdirection == 'right'),
-                bar   = panel.find('.uk-offcanvas-bar:first'),
-                finalize = function() {
-                    $body.removeClass('uk-offcanvas-page').css({width: '', height: '', marginLeft: '', marginRight: ''});
-                    panel.removeClass('uk-active');
+        computed: {
 
-                    bar.removeClass('uk-offcanvas-bar-show');
-                    $html.css('margin-top', '');
-                    window.scrollTo(scrollpos.x, scrollpos.y);
-                    bar.trigger('hide.uk.offcanvas', [panel, bar]);
+            content() {
+                return $(query(this.$props.content, this.$el));
+            },
 
-                    // Update ARIA
-                    panel.attr('aria-hidden', 'true');
-                };
+            clsFlip() {
+                return this.flip ? this.$props.clsFlip : '';
+            },
 
-            if (!panel.length) return;
-            if (bar.attr('mode') == 'none') force = true;
+            clsOverlay() {
+                return this.overlay ? this.$props.clsOverlay : '';
+            },
 
-            if (UI.support.transition && !force) {
+            clsMode() {
+                return `${this.$props.clsMode}-${this.mode}`;
+            },
 
-                $body.one(UI.support.transition.end, function() {
-                    finalize();
-                }).css((rtl ? 'margin-right' : 'margin-left'), '');
+            clsSidebarAnimation() {
+                return this.mode === 'none' || this.mode === 'reveal' ? '' : this.$props.clsSidebarAnimation;
+            },
 
-                if (bar.attr('mode') == 'reveal') {
-                    bar.css('clip', '');
-                }
+            clsContentAnimation() {
+                return this.mode !== 'push' && this.mode !== 'reveal' ? '' : this.$props.clsContentAnimation
+            },
 
-                setTimeout(function(){
-                    bar.removeClass('uk-offcanvas-bar-show');
-                }, 0);
-
-            } else {
-                finalize();
+            transitionElement() {
+                return this.mode === 'reveal' ? this.panel.parent() : this.panel;
             }
+
         },
 
-        _initElement: function(element) {
+        update: {
 
-            if (element.data('OffcanvasInit')) return;
+            write() {
 
-            element.on('click.uk.offcanvas swipeRight.uk.offcanvas swipeLeft.uk.offcanvas', function(e) {
+                if (this.isToggled()) {
 
-                var target = UI.$(e.target);
-
-                if (!e.type.match(/swipe/)) {
-
-                    if (!target.hasClass('uk-offcanvas-close')) {
-                        if (target.hasClass('uk-offcanvas-bar')) return;
-                        if (target.parents('.uk-offcanvas-bar:first').length) return;
-                    }
-                }
-
-                e.stopImmediatePropagation();
-                Offcanvas.hide();
-            });
-
-            element.on('click', 'a[href*="#"]', function(e){
-
-                var link = UI.$(this),
-                    href = link.attr('href');
-
-                if (href == '#') {
-                    return;
-                }
-
-                UI.$doc.one('hide.uk.offcanvas', function() {
-
-                    var target;
-
-                    try {
-                        target = UI.$(link[0].hash);
-                    } catch (e){
-                        target = '';
+                    if (this.overlay || this.clsContentAnimation) {
+                        this.content.width(window.innerWidth - this.scrollbarWidth);
                     }
 
-                    if (!target.length) {
-                        target = UI.$('[name="'+link[0].hash.replace('#','')+'"]');
+                    if (this.overlay) {
+                        this.content.height(window.innerHeight);
+                        scroll && this.content.scrollTop(scroll.y);
                     }
 
-                    if (target.length && UI.Utils.scrollToElement) {
-                        UI.Utils.scrollToElement(target, UI.Utils.options(link.attr('data-uk-smooth-scroll') || '{}'));
-                    } else {
-                        window.location.href = href;
-                    }
-                });
 
-                Offcanvas.hide();
-            });
-
-            element.data('OffcanvasInit', true);
-        }
-    };
-
-    UI.component('offcanvasTrigger', {
-
-        boot: function() {
-
-            // init code
-            $html.on('click.offcanvas.uikit', '[data-uk-offcanvas]', function(e) {
-
-                e.preventDefault();
-
-                var ele = UI.$(this);
-
-                if (!ele.data('offcanvasTrigger')) {
-                    var obj = UI.offcanvasTrigger(ele, UI.Utils.options(ele.attr('data-uk-offcanvas')));
-                    ele.trigger("click");
                 }
-            });
 
-            $html.on('keydown.uk.offcanvas', function(e) {
+            },
 
-                if (e.keyCode === 27) { // ESC
-                    Offcanvas.hide();
-                }
-            });
+            events: ['resize']
+
         },
 
-        init: function() {
+        events: [
 
-            var $this = this;
+            {
+                name: 'beforeshow',
 
-            this.options = UI.$.extend({
-                target: $this.element.is('a') ? $this.element.attr('href') : false,
-                mode: 'push'
-            }, this.options);
+                self: true,
 
-            this.on('click', function(e) {
-                e.preventDefault();
-                Offcanvas.show($this.options.target, $this.options);
-            });
-        }
+                handler() {
+
+                    scroll = scroll || {x: window.pageXOffset, y: window.pageYOffset};
+
+                    if (this.mode === 'reveal' && !this.panel.parent().hasClass(this.clsMode)) {
+                        this.panel.wrap('<div>').parent().addClass(this.clsMode);
+                    }
+
+                    docElement.css('overflow-y', (!this.clsContentAnimation || this.flip) && this.scrollbarWidth && this.overlay ? 'scroll' : '');
+
+                    this.body.addClass(`${this.clsContainer} ${this.clsFlip} ${this.clsOverlay}`).height();
+                    this.content.addClass(this.clsContentAnimation);
+                    this.panel.addClass(`${this.clsSidebarAnimation} ${this.mode !== 'reveal' ? this.clsMode : ''}`);
+                    this.$el.addClass(this.clsOverlay).css('display', 'block').height();
+
+                }
+            },
+
+            {
+                name: 'beforehide',
+
+                self: true,
+
+                handler() {
+                    this.content.removeClass(this.clsContentAnimation);
+
+                    if (this.mode === 'none' || this.getActive() && this.getActive() !== this) {
+                        this.panel.trigger(transitionend);
+                    }
+                }
+            },
+
+            {
+                name: 'hidden',
+
+                self: true,
+
+                handler() {
+
+                    if (this.mode === 'reveal') {
+                        this.panel.unwrap();
+                    }
+
+                    if (!this.overlay) {
+                        scroll = {x: window.pageXOffset, y: window.pageYOffset}
+                    }
+
+                    this.panel.removeClass(`${this.clsSidebarAnimation} ${this.clsMode}`);
+                    this.$el.removeClass(this.clsOverlay).css('display', '');
+                    this.body.removeClass(`${this.clsContainer} ${this.clsFlip} ${this.clsOverlay}`).scrollTop(scroll.y);
+
+                    docElement.css('overflow-y', '');
+                    this.content.width('').height('');
+
+                    window.scrollTo(scroll.x, scroll.y);
+
+                    scroll = null;
+
+                }
+            },
+
+            {
+                name: 'swipeLeft swipeRight',
+
+                handler(e) {
+
+                    if (this.isToggled() && isTouch(e) && (e.type === 'swipeLeft' && !this.flip || e.type === 'swipeRight' && this.flip)) {
+                        this.hide();
+                    }
+
+                }
+            }
+
+        ]
+
     });
 
-    UI.offcanvas = Offcanvas;
-
-})(UIkit2);
+}
